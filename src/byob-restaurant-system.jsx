@@ -5,7 +5,7 @@ import {
   Users, Clock, Receipt, Pencil, LayoutGrid, ShoppingBag, Printer,
   RotateCcw, History, Coffee, Lock, ChefHat, Flame, Undo2, LogOut
 } from "lucide-react";
-import { fetchTables, fetchMenu, saveBill, updateTableStatus, fetchBillsForDate } from "./lib/api";
+import { fetchTables, fetchMenu, saveBill, updateTableStatus, fetchBillsForDate, createMenuItem, updateMenuItem, deleteMenuItem } from "./lib/api";
 
 /* ---------------- Design tokens ---------------- */
 const C = {
@@ -349,7 +349,7 @@ export default function App({ restaurantId, cashierName: staffName, onLogout }) 
           <BillHistoryTab billHistory={billHistory} setBillHistory={setBillHistory} setReceipt={setReceipt} />
         )}
         {tab === "menu" && (
-          <MenuTab menu={menu} setMenu={setMenu} />
+          <MenuTab menu={menu} setMenu={setMenu} restaurantId={restaurantId} />
         )}
         {tab === "inventory" && (
           <InventoryTab inventory={inventory} setInventory={setInventory} />
@@ -1439,27 +1439,47 @@ function BillHistoryTab({ billHistory, setBillHistory, setReceipt }) {
 }
 
 /* ---------------- Menu management ---------------- */
-function MenuTab({ menu, setMenu }) {
+function MenuTab({ menu, setMenu, restaurantId }) {
   const [form, setForm] = useState({ name: "", type: "Food", category: "Mains", price: "" });
   const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
   const catsByType = {
-    Food: ["Starters", "Mains", "Sides", "Desserts"],
-    Drinks: ["Soft Drinks", "Hot & Cold Beverages", "Bar Service"],
+    Food: ["Appetizers & Bites", "Fried Rice Variety", "Traditional Rice & Curry", "Kottu Specialities", "Chef's Special Dishes"],
+    Drinks: ["Soft Drinks & Sodas", "BYOB Mixers & Chasers", "Juices & Chillers", "BYOB Essentials"],
   };
 
-  function addOrUpdate() {
+  async function addOrUpdate() {
     if (!form.name || !form.price) return;
-    if (editingId) {
-      setMenu(menu.map(m => m.id === editingId ? { ...m, ...form, price: Number(form.price) } : m));
-      setEditingId(null);
-    } else {
-      setMenu([...menu, { id: uid("m"), name: form.name, type: form.type, category: form.category, price: Number(form.price), available: true }]);
+    setSaving(true);
+    setError(null);
+    try {
+      if (editingId) {
+        setMenu(menu.map(m => m.id === editingId ? { ...m, ...form, price: Number(form.price) } : m));
+        await updateMenuItem(editingId, { name: form.name, category: form.category, type: form.type, price: Number(form.price) });
+        setEditingId(null);
+      } else {
+        const created = await createMenuItem(restaurantId, { name: form.name, category: form.category, type: form.type, price: Number(form.price) });
+        setMenu([...menu, { id: created.id, name: created.name, type: created.type, category: created.category, price: Number(created.price), available: created.is_available }]);
+      }
+      setForm({ name: "", type: "Food", category: "Mains", price: "" });
+    } catch (err) {
+      setError(err.message || "Couldn't save to the database — check your connection and try again.");
+    } finally {
+      setSaving(false);
     }
-    setForm({ name: "", type: "Food", category: "Mains", price: "" });
   }
   function edit(m) { setForm({ name: m.name, type: m.type, category: m.category, price: m.price }); setEditingId(m.id); }
-  function remove(id) { setMenu(menu.filter(m => m.id !== id)); if (editingId === id) { setEditingId(null); setForm({ name: "", type: "Food", category: "Mains", price: "" }); } }
-  function toggleAvailable(id) { setMenu(menu.map(m => m.id === id ? { ...m, available: !m.available } : m)); }
+  async function remove(id) {
+    setMenu(menu.filter(m => m.id !== id));
+    if (editingId === id) { setEditingId(null); setForm({ name: "", type: "Food", category: "Mains", price: "" }); }
+    try { await deleteMenuItem(id); } catch (err) { setError(err.message || "Couldn't delete from the database."); }
+  }
+  async function toggleAvailable(id) {
+    const item = menu.find(m => m.id === id);
+    setMenu(menu.map(m => m.id === id ? { ...m, available: !m.available } : m));
+    try { await updateMenuItem(id, { available: !item.available }); } catch (err) { setError(err.message || "Couldn't update availability."); }
+  }
 
   return (
     <div>
@@ -1507,8 +1527,9 @@ function MenuTab({ menu, setMenu }) {
             </select>
           </Field>
           <Field label="Price (LKR)"><input type="number" style={inp} value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="1500" /></Field>
+          {error && <div style={{ color: C.rust, fontSize: 12, marginBottom: 8 }}>{error}</div>}
           <div style={{ display: "flex", gap: 8 }}>
-            <Btn onClick={addOrUpdate} icon={editingId ? Check : Plus}>{editingId ? "Save changes" : "Add item"}</Btn>
+            <Btn onClick={addOrUpdate} icon={editingId ? Check : Plus} disabled={saving}>{saving ? "Saving…" : editingId ? "Save changes" : "Add item"}</Btn>
             {editingId && <Btn variant="ghost" onClick={() => { setEditingId(null); setForm({ name: "", type: "Food", category: "Mains", price: "" }); }}>Cancel</Btn>}
           </div>
         </Card>

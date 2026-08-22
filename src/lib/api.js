@@ -28,6 +28,31 @@ export async function fetchMenu(restaurantId) {
   return data;
 }
 
+export async function createMenuItem(restaurantId, item) {
+  const { data, error } = await supabase
+    .from("menu_items")
+    .insert({ restaurant_id: restaurantId, name: item.name, category: item.category, type: item.type, price: item.price, is_available: true })
+    .select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateMenuItem(id, patch) {
+  const dbPatch = {};
+  if (patch.name !== undefined) dbPatch.name = patch.name;
+  if (patch.category !== undefined) dbPatch.category = patch.category;
+  if (patch.type !== undefined) dbPatch.type = patch.type;
+  if (patch.price !== undefined) dbPatch.price = patch.price;
+  if (patch.available !== undefined) dbPatch.is_available = patch.available;
+  const { error } = await supabase.from("menu_items").update(dbPatch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteMenuItem(id) {
+  const { error } = await supabase.from("menu_items").delete().eq("id", id);
+  if (error) throw error;
+}
+
 // ---------- POOL TABLE ----------
 export async function fetchPoolTable(restaurantId) {
   const { data, error } = await supabase
