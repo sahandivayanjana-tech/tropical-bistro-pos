@@ -5,7 +5,7 @@ import {
   Users, Clock, Receipt, Pencil, LayoutGrid, ShoppingBag, Printer,
   RotateCcw, History, Coffee, Lock, ChefHat, Flame, Undo2, LogOut
 } from "lucide-react";
-import { fetchTables, fetchMenu, saveBill, updateTableStatus } from "./lib/api";
+import { fetchTables, fetchMenu, saveBill, updateTableStatus, fetchBillsForDate } from "./lib/api";
 
 /* ---------------- Design tokens ---------------- */
 const C = {
@@ -177,13 +177,35 @@ export default function App({ restaurantId, cashierName: staffName, onLogout }) 
     if (!restaurantId) return;
     let cancelled = false;
     setDataLoading(true);
-    Promise.all([fetchTables(restaurantId), fetchMenu(restaurantId)])
-      .then(([tableRows, menuRows]) => {
+    Promise.all([fetchTables(restaurantId), fetchMenu(restaurantId), fetchBillsForDate(restaurantId, null)])
+      .then(([tableRows, menuRows, billRows]) => {
         if (cancelled) return;
         setTables(tableRows.map(t => ({ id: t.id, number: t.number, seats: t.seats, status: t.status })));
         setMenu(menuRows.map(m => ({
           id: m.id, name: m.name, type: m.type || "Food", category: m.category,
           price: Number(m.price), available: m.is_available,
+        })));
+        setBillHistory(billRows.map(b => ({
+          id: b.id,
+          receiptNo: b.id.slice(0, 8).toUpperCase(),
+          date: b.date,
+          time: new Date(b.created_at).toTimeString().slice(0, 5),
+          orderType: b.order_type,
+          label: b.label,
+          customerName: b.customer_name,
+          customerPhone: null,
+          bottles: b.bottles,
+          corkageTotal: Number(b.corkage_total),
+          foodTotal: Number(b.food_total),
+          poolHours: b.pool_hours,
+          poolCharge: Number(b.pool_charge),
+          discountAmount: Number(b.discount_amount),
+          serviceChargeAmount: Number(b.service_charge_amount),
+          grandTotal: Number(b.grand_total),
+          cashReceived: b.cash_received != null ? Number(b.cash_received) : null,
+          changeDue: b.change_due != null ? Number(b.change_due) : null,
+          cashier: b.cashier_name,
+          status: b.status,
         })));
         setDataError(null);
       })
