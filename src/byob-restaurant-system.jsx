@@ -735,6 +735,7 @@ function POSTab({ tables, setTables, menu, orders, setOrders, corkageFee, servic
   const [activeOrderId, setActiveOrderId] = useState(null);
   const activeOrder = orders.find(o => o.id === activeOrderId);
   const [menuFilter, setMenuFilter] = useState("All");
+  const [menuSearch, setMenuSearch] = useState("");
   const [confirmVoid, setConfirmVoid] = useState(false);
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -921,7 +922,16 @@ function POSTab({ tables, setTables, menu, orders, setOrders, corkageFee, servic
   }
 
   const roundStatusLabel = { open: ["Not sent yet", "slate"], kitchen: ["In kitchen", "gold"], served: ["Served", "sage"] };
-  const filteredMenu = menu.filter(m => m.available && (menuFilter === "All" || m.type === menuFilter));
+  const filteredMenu = menu.filter(m =>
+    m.available &&
+    (menuFilter === "All" || m.type === menuFilter) &&
+    (!menuSearch || m.name.toLowerCase().includes(menuSearch.toLowerCase()))
+  );
+  const menuByCategory = {};
+  for (const m of filteredMenu) {
+    if (!menuByCategory[m.category]) menuByCategory[m.category] = [];
+    menuByCategory[m.category].push(m);
+  }
   const takeawayOrders = orders.filter(o => o.orderType === "takeaway");
   const openRound = activeOrder?.rounds.find(r => r.status === "open");
   const firedRounds = activeOrder ? activeOrder.rounds.filter(r => r.status !== "open") : [];
@@ -986,17 +996,32 @@ function POSTab({ tables, setTables, menu, orders, setOrders, corkageFee, servic
                   </button>
                 ))}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginBottom: 14 }}>
-                {filteredMenu.map(m => (
-                  <button key={m.id} onClick={() => addItem(m)} style={{
-                    textAlign: "left", padding: "10px 12px", borderRadius: 9, border: `1px solid ${C.line}`,
-                    background: C.cream, cursor: "pointer"
-                  }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{m.name}</div>
-                    <div style={{ fontSize: 11.5, color: C.slate, display: "flex", justifyContent: "space-between", marginTop: 2 }}>
-                      <span>{m.category}</span><span style={{ fontFamily: monoFont, color: C.gold, fontWeight: 700 }}>{rs(m.price)}</span>
+              <div style={{ position: "relative", marginBottom: 12 }}>
+                <Search size={13} color={C.slate} style={{ position: "absolute", left: 10, top: 9 }} />
+                <input value={menuSearch} onChange={e => setMenuSearch(e.target.value)} placeholder="Search menu…"
+                  style={{ ...inp, paddingLeft: 30 }} />
+              </div>
+              <div style={{ maxHeight: 480, overflowY: "auto", marginBottom: 14 }}>
+                {Object.keys(menuByCategory).length === 0 && (
+                  <div style={{ color: C.slate, fontSize: 13, padding: "12px 0" }}>No items match.</div>
+                )}
+                {Object.entries(menuByCategory).map(([cat, items]) => (
+                  <div key={cat} style={{ marginBottom: 14 }}>
+                    <div style={{ fontWeight: 700, fontSize: 11.5, color: C.gold, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.4 }}>{cat}</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
+                      {items.map(m => (
+                        <button key={m.id} onClick={() => addItem(m)} style={{
+                          textAlign: "left", padding: "10px 12px", borderRadius: 9, border: `1px solid ${C.line}`,
+                          background: C.cream, cursor: "pointer"
+                        }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{m.name}</div>
+                          <div style={{ fontSize: 11.5, color: C.slate, display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
+                            <span style={{ fontFamily: monoFont, color: C.gold, fontWeight: 700 }}>{rs(m.price)}</span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
 
