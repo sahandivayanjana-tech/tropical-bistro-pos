@@ -46,16 +46,9 @@ const fontLinks = (
 // seedTables / seedMenu removed — tables and menu now load live from
 // Supabase (see the useEffect in App() that calls fetchTables/fetchMenu).
 
-const seedInventory = [
-  { id: "i1", name: "Cuttlefish", unit: "kg", qty: 8, threshold: 4, category: "Seafood" },
-  { id: "i2", name: "Chicken breast", unit: "kg", qty: 12, threshold: 6, category: "Meat" },
-  { id: "i3", name: "Prawns (large)", unit: "kg", qty: 3, threshold: 5, category: "Seafood" },
-  { id: "i4", name: "Basmati rice", unit: "kg", qty: 25, threshold: 10, category: "Dry goods" },
-  { id: "i5", name: "Coconut milk", unit: "l", qty: 6, threshold: 8, category: "Dairy/Alt" },
-  { id: "i6", name: "Wine glasses", unit: "pcs", qty: 40, threshold: 20, category: "Bar" },
-  { id: "i7", name: "Garlic", unit: "kg", qty: 2, threshold: 3, category: "Produce" },
-  { id: "i8", name: "Naan dough balls", unit: "pcs", qty: 30, threshold: 15, category: "Bakery" },
-];
+// seedInventory removed — was demo data (Cuttlefish, Chicken breast, etc.).
+// Inventory now starts empty; add real stock items from the app.
+const seedInventory = [];
 
 // seedReservations removed — was demo data (Perera family / K. Fernando)
 // referencing old sample table IDs that no longer match the real Supabase
