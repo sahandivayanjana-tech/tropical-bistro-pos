@@ -57,10 +57,10 @@ const seedInventory = [
   { id: "i8", name: "Naan dough balls", unit: "pcs", qty: 30, threshold: 15, category: "Bakery" },
 ];
 
-const seedReservations = [
-  { id: "r1", name: "Perera family", phone: "071 234 5678", date: "2026-08-20", time: "19:00", size: 4, tableId: "t5", notes: "Anniversary, window seat", status: "confirmed" },
-  { id: "r2", name: "K. Fernando", phone: "077 555 1122", date: "2026-08-20", time: "20:30", size: 2, tableId: null, notes: "Bringing 2 bottles red", status: "confirmed" },
-];
+// seedReservations removed — was demo data (Perera family / K. Fernando)
+// referencing old sample table IDs that no longer match the real Supabase
+// tables. Reservations now start empty; add real ones from the app.
+const seedReservations = [];
 
 const uid = (p) => `${p}${Math.random().toString(36).slice(2, 8)}`;
 const rs = (n) => `Rs. ${Number(n || 0).toLocaleString("en-LK", { minimumFractionDigits: 0 })}`;
