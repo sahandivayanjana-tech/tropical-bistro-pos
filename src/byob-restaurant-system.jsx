@@ -198,6 +198,7 @@ export default function App({ restaurantId, cashierName: staffName, onLogout }) 
           cashReceived: b.cash_received != null ? Number(b.cash_received) : null,
           changeDue: b.change_due != null ? Number(b.change_due) : null,
           cashier: b.cashier_name,
+          paymentMethod: b.payment_method || "Cash",
           status: b.status,
         })));
         setDataError(null);
@@ -408,9 +409,10 @@ function ReceiptModal({ bill, onClose }) {
           )}
           <div style={{ borderTop: "1px solid #111", margin: "8px 0" }} />
           <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 14 }}><span>TOTAL</span><span>{rs(bill.grandTotal)}</span></div>
+          <div style={{ borderTop: "1px dashed #999", margin: "8px 0" }} />
+          <div style={{ display: "flex", justifyContent: "space-between" }}><span>Paid via</span><span>{bill.paymentMethod || "Cash"}</span></div>
           {bill.cashReceived != null && (
             <>
-              <div style={{ borderTop: "1px dashed #999", margin: "8px 0" }} />
               <div style={{ display: "flex", justifyContent: "space-between" }}><span>Cash received</span><span>{rs(bill.cashReceived)}</span></div>
               <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}><span>Change given</span><span>{rs(bill.changeDue)}</span></div>
             </>
@@ -745,7 +747,7 @@ function POSTab({ tables, setTables, menu, orders, setOrders, corkageFee, servic
       ord = {
         id: uid("o"), orderType: "dine-in", tableId, label: tables.find(t => t.id === tableId)?.number,
         rounds: [{ id: uid("rd"), items: [], status: "open", firedAt: null }],
-        bottles: 0, poolHours: 0, poolCharge: 0, cashReceived: "",
+        bottles: 0, poolHours: 0, poolCharge: 0, cashReceived: "", paymentMethod: "Cash",
         customerName: linkedReservation?.name || "", customerPhone: linkedReservation?.phone || "",
         discountType: "none", discountValue: 0, applyService: true, createdAt: Date.now()
       };
@@ -764,7 +766,7 @@ function POSTab({ tables, setTables, menu, orders, setOrders, corkageFee, servic
     const ord = {
       id: uid("o"), orderType: "takeaway", tableId: null, label: takeawayCounter,
       rounds: [{ id: uid("rd"), items: [], status: "open", firedAt: null }],
-      bottles: 0, poolHours: 0, poolCharge: 0, cashReceived: "", customerName: "", customerPhone: "", discountType: "none", discountValue: 0, applyService: false, createdAt: Date.now()
+      bottles: 0, poolHours: 0, poolCharge: 0, cashReceived: "", paymentMethod: "Cash", customerName: "", customerPhone: "", discountType: "none", discountValue: 0, applyService: false, createdAt: Date.now()
     };
     setOrders([...orders, ord]);
     setTakeawayCounter(takeawayCounter + 1);
@@ -898,6 +900,7 @@ function POSTab({ tables, setTables, menu, orders, setOrders, corkageFee, servic
       serviceChargePct: activeOrder.applyService ? serviceChargePct : 0, serviceChargeAmount,
       grandTotal,
       cashReceived: cashReceivedNum || null, changeDue,
+      paymentMethod: activeOrder.paymentMethod || "Cash",
       cashier: cashierName || "Unassigned",
       status: "paid",
     };
@@ -1154,22 +1157,42 @@ function POSTab({ tables, setTables, menu, orders, setOrders, corkageFee, servic
 
               {allItems.length > 0 && (
                 <div style={{ marginTop: 14, borderTop: "1px dashed #ffffff33", paddingTop: 12 }}>
-                  <label style={{ fontSize: 11, color: "#ffffffaa", textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 700 }}>Cash received (LKR)</label>
-                  <input
-                    type="number"
-                    value={activeOrder.cashReceived}
-                    onChange={e => updateOrder({ cashReceived: e.target.value })}
-                    placeholder={String(grandTotal)}
-                    style={{ ...inp, marginTop: 6, background: "#ffffff14", color: "#fff", borderColor: "#ffffff33", fontFamily: monoFont, fontSize: 15 }}
-                  />
-                  {changeDue > 0 && (
-                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 13.5, fontWeight: 700, color: "#8FBF7F" }}>
-                      <span>Change due</span><span style={{ fontFamily: monoFont }}>{rs(changeDue)}</span>
-                    </div>
-                  )}
-                  {shortBy > 0 && (
-                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 13.5, fontWeight: 700, color: "#E8A184" }}>
-                      <span>Still short by</span><span style={{ fontFamily: monoFont }}>{rs(shortBy)}</span>
+                  <label style={{ fontSize: 11, color: "#ffffffaa", textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 700 }}>Payment method</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginTop: 6 }}>
+                    {["Cash", "Card", "Bank Transfer", "QR"].map(pm => (
+                      <button key={pm} onClick={() => updateOrder({ paymentMethod: pm })} style={{
+                        padding: "7px 4px", borderRadius: 7, border: `1px solid ${(activeOrder.paymentMethod || "Cash") === pm ? C.gold : "#ffffff33"}`,
+                        background: (activeOrder.paymentMethod || "Cash") === pm ? C.gold : "#ffffff14",
+                        color: (activeOrder.paymentMethod || "Cash") === pm ? "#221F26" : "#fff",
+                        fontSize: 11.5, fontWeight: 700, cursor: "pointer"
+                      }}>{pm}</button>
+                    ))}
+                  </div>
+
+                  {(activeOrder.paymentMethod || "Cash") === "Cash" ? (
+                    <>
+                      <label style={{ fontSize: 11, color: "#ffffffaa", textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 700, marginTop: 12, display: "block" }}>Cash received (LKR)</label>
+                      <input
+                        type="number"
+                        value={activeOrder.cashReceived}
+                        onChange={e => updateOrder({ cashReceived: e.target.value })}
+                        placeholder={String(grandTotal)}
+                        style={{ ...inp, marginTop: 6, background: "#ffffff14", color: "#fff", borderColor: "#ffffff33", fontFamily: monoFont, fontSize: 15 }}
+                      />
+                      {changeDue > 0 && (
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 13.5, fontWeight: 700, color: "#8FBF7F" }}>
+                          <span>Change due</span><span style={{ fontFamily: monoFont }}>{rs(changeDue)}</span>
+                        </div>
+                      )}
+                      {shortBy > 0 && (
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 13.5, fontWeight: 700, color: "#E8A184" }}>
+                          <span>Still short by</span><span style={{ fontFamily: monoFont }}>{rs(shortBy)}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ marginTop: 10, fontSize: 12, color: "#ffffffaa" }}>
+                      {activeOrder.paymentMethod} — full amount {rs(grandTotal)}. No change to calculate.
                     </div>
                   )}
                 </div>
@@ -1348,6 +1371,11 @@ function BillHistoryTab({ billHistory, setBillHistory, setReceipt }) {
     service: paidFiltered.reduce((s, b) => s + (b.serviceChargeAmount || 0), 0),
     discount: paidFiltered.reduce((s, b) => s + (b.discountAmount || 0), 0),
   };
+  const byPaymentMethod = {};
+  for (const b of paidFiltered) {
+    const pm = b.paymentMethod || "Cash";
+    byPaymentMethod[pm] = (byPaymentMethod[pm] || 0) + b.grandTotal;
+  }
 
   const byDay = dates.map(d => {
     const dayBills = billHistory.filter(b => b.date === d && b.status === "paid");
@@ -1387,6 +1415,14 @@ function BillHistoryTab({ billHistory, setBillHistory, setReceipt }) {
             <span style={{ fontWeight: 700 }}>Net sales</span>
             <span style={{ fontFamily: monoFont, fontWeight: 700, color: C.wine }}>{rs(dayTotal)}</span>
           </div>
+          {Object.keys(byPaymentMethod).length > 0 && (
+            <div style={{ borderTop: `1px dashed ${C.line}`, marginTop: 10, paddingTop: 10 }}>
+              <div style={{ fontSize: 11, color: C.slate, textTransform: "uppercase", letterSpacing: 0.4, fontWeight: 700, marginBottom: 6 }}>By payment method</div>
+              {Object.entries(byPaymentMethod).map(([pm, amt]) => (
+                <Row key={pm} label={pm} value={rs(amt)} />
+              ))}
+            </div>
+          )}
         </Card>
 
         <Card>
@@ -1428,7 +1464,7 @@ function BillHistoryTab({ billHistory, setBillHistory, setReceipt }) {
                     {b.customerName && ` · ${b.customerName}`}
                   </div>
                   <div style={{ fontSize: 11.5, color: C.slate }}>
-                    {b.date} {b.time}{b.customerPhone ? ` · ${b.customerPhone}` : ""}{b.cashier ? ` · Billed by ${b.cashier}` : ""}
+                    {b.date} {b.time}{b.customerPhone ? ` · ${b.customerPhone}` : ""}{b.cashier ? ` · Billed by ${b.cashier}` : ""} · {b.paymentMethod || "Cash"}
                   </div>
                 </div>
                 <span style={{ marginLeft: "auto", fontFamily: monoFont, fontWeight: 700 }}>{rs(b.grandTotal)}</span>

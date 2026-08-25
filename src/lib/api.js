@@ -121,6 +121,7 @@ export async function saveBill(restaurantId, bill) {
     change_due: bill.changeDue,
     status: bill.status,
     cashier_name: bill.cashier,
+    payment_method: bill.paymentMethod || "Cash",
   });
   if (error) throw error;
 }
